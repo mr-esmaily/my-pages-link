@@ -1,5 +1,5 @@
 const userID = '2a7401b5-6ebf-4244-88ce-2b99afe84499'; 
-const proxyIP = 'dl.google.com'; 
+const proxyIP = '155.254.35.75'; 
 
 export default {
   async fetch(request, env) {
