@@ -1,34 +1,30 @@
-const userID = '7a58054e-dc48-4633-986c-2ca6dd19b974'; 
-const proxyIP = '155.254.35.75'; 
-const proxyPort = 2052;
-
 export default {
   async fetch(request, env) {
-    const upgradeHeader = request.headers.get('Upgrade');
-    if (upgradeHeader !== 'websocket') {
+    const url = new URL(request.url);
+    if (request.headers.get('Upgrade') !== 'websocket') {
       return new Response('Bridge is Active', { status: 200 });
     }
-    return await vlessOverWS(request);
+    // تنظیمات مستقیم و بدون خطا
+    const address = '155.254.35.75'; // آی‌پی سرور شما
+    const port = 2052; // پورت سنایی شما
+    
+    return await vlessOverWS(request, address, port);
   }
 };
 
-async function vlessOverWS(request) {
-  const webSocketPair = new WebSocketPair();
-  const [client, server] = Object.values(webSocketPair);
+async function vlessOverWS(request, address, port) {
+  const { client, server } = new WebSocketPair();
   server.accept();
-
-  // ایجاد اتصال مستقیم به سرور شما
-  const url = `ws://${proxyIP}:${proxyPort}/`;
-  const socket = new WebSocket(url);
-
-  socket.addEventListener('open', () => {
-    // اتصال دو طرفه بین گوشی و سرور
-    server.addEventListener('message', event => socket.send(event.data));
-    socket.addEventListener('message', event => server.send(event.data));
-  });
-
-  socket.addEventListener('close', () => server.close());
-  server.addEventListener('close', () => socket.close());
+  const socket = new WebSocket(`ws://${address}:${port}`);
+  
+  // لوله‌کشی ترافیک بین کلودفلر و سرور
+  socket.onopen = () => {
+    server.onmessage = ({ data }) => socket.send(data);
+    socket.onmessage = ({ data }) => server.send(data);
+  };
+  
+  socket.onclose = () => server.close();
+  server.onclose = () => socket.close();
 
   return new Response(null, { status: 101, webSocket: client });
 }
